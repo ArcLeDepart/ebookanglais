@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build Log — Corentin Gas · BUT Informatique 2025–2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#14151A;
+    --ink-2:#1A1C22;
+    --panel:#1E2027;
+    --panel-2:#23262F;
+    --line:#2E313C;
+    --line-soft:#262932;
+    --bone:#ECE7DC;
+    --bone-dim:#B8B6B0;
+    --muted:#9596A2;
+    --muted-2:#74757F;
+
+    /* one accent per chapter — four distinct domains */
+    --c1:#8E7BFF; /* mobile / leveling */
+    --c2:#FFAE3D; /* arcade game */
+    --c3:#2FD3B5; /* voice AI */
+    --c4:#6AA6FF; /* robot / BLE */
+
+    --accent:var(--bone); /* overridden per chapter */
+
+    --font-display:'Bricolage Grotesque',system-ui,sans-serif;
+    --font-body:'Newsreader',Georgia,serif;
+    --font-mono:'JetBrains Mono',ui-monospace,monospace;
+
+    --maxw:1180px;
+    --gutter:clamp(20px,5vw,64px);
+    --spine:188px;
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--bone);
+    font-family:var(--font-body);
+    font-size:clamp(17px,1.05vw + 12px,19px);
+    line-height:1.72;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    overflow-x:hidden;
+  }
+  /* faint engineering-grid texture + vignette, kept very low contrast */
+  body::before{
+    content:"";
+    position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:
+      linear-gradient(var(--line-soft) 1px,transparent 1px),
+      linear-gradient(90deg,var(--line-soft) 1px,transparent 1px);
+    background-size:64px 64px;
+    opacity:.16;
+    mask-image:radial-gradient(120% 90% at 50% 0%,#000 30%,transparent 92%);
+  }
+  body::after{
+    content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:radial-gradient(120% 80% at 50% -10%,rgba(255,255,255,.04),transparent 60%);
+  }
+
+  a{color:inherit}
+  h1,h2,h3{font-family:var(--font-display);font-weight:700;letter-spacing:-.02em;line-height:1.02;margin:0}
+  p{margin:0 0 1.05em}
+  ::selection{background:var(--accent);color:var(--ink)}
+
+  .wrap{position:relative;z-index:1;max-width:var(--maxw);margin-inline:auto;padding-inline:var(--gutter)}
+
+  /* ---------- reading progress ---------- */
+  .progress{position:fixed;top:0;left:0;height:3px;width:100%;z-index:60;background:transparent}
+  .progress__bar{height:100%;width:0;background:linear-gradient(90deg,var(--c1),var(--c2),var(--c3),var(--c4));transform-origin:left;}
+
+  /* ---------- spine nav ---------- */
+  .spine{
+    position:fixed;top:0;left:0;height:100vh;width:var(--spine);
+    display:flex;flex-direction:column;justify-content:center;gap:2px;
+    padding-left:var(--gutter);z-index:40;
+  }
+  .spine__brand{font-family:var(--font-mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted-2);margin-bottom:26px}
+  .spine__brand b{color:var(--bone);font-weight:600}
+  .spine a{
+    display:flex;align-items:flex-start;gap:11px;text-decoration:none;
+    padding:7px 0;color:var(--muted);transition:color .25s ease;position:relative;
+  }
+  .spine a .n{font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--muted-2);transition:color .25s ease;min-width:20px;line-height:1.35}
+  .spine a .t{font-family:var(--font-display);font-size:13.5px;font-weight:500;letter-spacing:-.01em;line-height:1.22}
+  .spine a::before{
+    content:"";position:absolute;left:-10px;top:50%;width:5px;height:5px;border-radius:50%;
+    background:var(--muted-2);transform:translateY(-50%) scale(.7);opacity:.4;transition:all .25s ease;
+  }
+  .spine a:hover{color:var(--bone)}
+  .spine a:hover .n{color:var(--bone)}
+  .spine a.active{color:var(--bone)}
+  .spine a.active .n,.spine a.active .t{color:var(--acc)}
+  .spine a.active::before{background:var(--acc);opacity:1;transform:translateY(-50%) scale(1.4);box-shadow:0 0 12px var(--acc)}
+
+  /* ---------- generic section frame ---------- */
+  section{position:relative;z-index:1}
+  .content{max-width:var(--maxw);margin-inline:auto;padding-left:calc(var(--spine) + var(--gutter));padding-right:var(--gutter)}
+  @media (max-width:1080px){.content{padding-left:var(--gutter)}}
+
+  .eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);margin-bottom:18px;display:flex;align-items:center;gap:12px}
+  .eyebrow::after{content:"";flex:0 0 auto;width:34px;height:1px;background:var(--accent);opacity:.55}
+
+  /* ---------- cover ---------- */
+  .cover{min-height:100svh;display:flex;flex-direction:column;justify-content:center;padding-block:96px}
+  .cover .content{width:100%}
+  .cover__kicker{font-family:var(--font-mono);font-size:12.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--muted);margin-bottom:30px}
+  .cover h1{
+    font-size:clamp(44px,8.4vw,104px);font-weight:800;letter-spacing:-.035em;line-height:.94;
+  }
+  .cover h1 .line{display:block;overflow:hidden}
+  .cover h1 .line span{display:block}
+  .cover h1 em{font-family:var(--font-body);font-style:italic;font-weight:500;letter-spacing:-.01em;color:var(--bone-dim)}
+  .cover__lede{max-width:46ch;margin-top:34px;color:var(--bone-dim);font-size:clamp(18px,1.4vw,21px);line-height:1.6}
+  .cover__lede em{color:var(--bone);font-style:italic}
+
+  .spectrum{display:flex;align-items:center;gap:0;margin-top:54px;max-width:560px}
+  .spectrum .seg{flex:1;height:4px;border-radius:3px}
+  .spectrum .seg:nth-child(1){background:var(--c1)}
+  .spectrum .seg:nth-child(2){background:var(--c2)}
+  .spectrum .seg:nth-child(3){background:var(--c3)}
+  .spectrum .seg:nth-child(4){background:var(--c4)}
+  .cover__index{display:flex;flex-wrap:wrap;gap:22px 38px;margin-top:22px;font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;color:var(--muted)}
+  .cover__index span b{color:var(--bone);font-weight:600}
+  .cover__index .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:9px;vertical-align:middle}
+
+  .cover__by{margin-top:64px;display:flex;flex-wrap:wrap;gap:6px 30px;align-items:baseline;border-top:1px solid var(--line);padding-top:26px;font-family:var(--font-mono);font-size:12.5px;letter-spacing:.05em;color:var(--muted)}
+  .cover__by b{font-family:var(--font-display);font-size:15px;letter-spacing:-.01em;color:var(--bone);font-weight:600}
+
+  .scrollhint{margin-top:42px;display:inline-flex;align-items:center;gap:11px;font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted-2)}
+  .scrollhint .bar{width:1px;height:34px;background:linear-gradient(var(--muted-2),transparent);position:relative;overflow:hidden}
+  .scrollhint .bar::after{content:"";position:absolute;left:0;top:0;width:100%;height:12px;background:var(--bone);animation:drop 1.9s ease-in-out infinite}
+  @keyframes drop{0%{transform:translateY(-14px);opacity:0}30%{opacity:1}100%{transform:translateY(34px);opacity:0}}
+
+  /* ---------- foreword ---------- */
+  .foreword{padding-block:clamp(80px,12vh,150px)}
+  .foreword__grid{display:grid;grid-template-columns:1fr;gap:clamp(28px,4vw,60px)}
+  @media (min-width:900px){.foreword__grid{grid-template-columns:1.15fr 1fr}}
+  .foreword h2{font-size:clamp(30px,4.4vw,52px);letter-spacing:-.03em;max-width:14ch}
+  .foreword h2 em{font-family:var(--font-body);font-style:italic;font-weight:500;color:var(--bone-dim)}
+  .foreword p{color:var(--bone-dim);max-width:54ch}
+  .foreword p strong{color:var(--bone);font-weight:600}
+  .ledger{border:1px solid var(--line);border-radius:14px;overflow:hidden;align-self:start;background:linear-gradient(180deg,var(--ink-2),rgba(30,32,39,.4))}
+  .ledger__head{font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted-2);padding:16px 20px;border-bottom:1px solid var(--line)}
+  .ledger__row{display:flex;justify-content:space-between;gap:16px;padding:14px 20px;border-bottom:1px solid var(--line-soft);font-family:var(--font-mono);font-size:13px}
+  .ledger__row:last-child{border-bottom:0}
+  .ledger__row .k{color:var(--muted);letter-spacing:.04em}
+  .ledger__row .v{color:var(--bone);text-align:right;font-weight:500}
+
+  /* ---------- chapter ---------- */
+  .chapter{padding-block:clamp(72px,11vh,128px);border-top:1px solid var(--line-soft);position:relative}
+  .chapter::before{ /* spine tick in the page margin */
+    content:"";position:absolute;left:0;top:0;width:3px;height:100%;
+    background:linear-gradient(var(--accent),transparent 70%);opacity:.5;
+  }
+  .ch-head{margin-bottom:clamp(34px,5vw,58px)}
+  .ch-num{font-family:var(--font-display);font-weight:800;font-size:clamp(70px,13vw,150px);line-height:.8;letter-spacing:-.04em;
+    color:transparent;-webkit-text-stroke:1.4px var(--line);position:relative}
+  .ch-num b{color:var(--accent);-webkit-text-stroke:0;font-weight:800}
+  .ch-title{font-size:clamp(34px,6vw,68px);font-weight:700;letter-spacing:-.035em;margin-top:6px}
+  .ch-hook{font-family:var(--font-body);font-style:italic;font-size:clamp(19px,2vw,26px);color:var(--bone-dim);margin-top:18px;max-width:30ch;line-height:1.4}
+
+  .ch-body{display:grid;grid-template-columns:1fr;gap:clamp(30px,4vw,56px)}
+  @media (min-width:900px){.ch-body{grid-template-columns:300px 1fr;align-items:start}}
+  @media (min-width:1180px){.ch-body{grid-template-columns:340px 1fr}}
+
+  /* spec panel */
+  .spec{position:sticky;top:34px;border:1px solid var(--line);border-radius:16px;background:var(--panel);overflow:hidden}
+  @media (max-width:899px){.spec{position:static}}
+  .figure{aspect-ratio:5/4;width:100%;display:block;background:radial-gradient(130% 130% at 30% 0%,rgba(255,255,255,.04),transparent 60%);border-bottom:1px solid var(--line)}
+  .spec__title{font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted-2);padding:16px 18px 4px}
+  .spec__tags{display:flex;flex-wrap:wrap;gap:8px;padding:6px 18px 20px}
+  .tag{font-family:var(--font-mono);font-size:12px;letter-spacing:.01em;color:var(--bone-dim);
+    border:1px solid var(--line);border-radius:999px;padding:5px 11px;background:var(--ink-2);white-space:nowrap}
+  .tag.lead{color:var(--ink);background:var(--accent);border-color:var(--accent);font-weight:600}
+  .spec__meta{border-top:1px solid var(--line-soft);padding:14px 18px;font-family:var(--font-mono);font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:9px}
+  .spec__meta .row{display:flex;justify-content:space-between;gap:12px}
+  .spec__meta .row b{color:var(--bone);font-weight:500}
+
+  /* narrative */
+  .narrative{max-width:62ch}
+  .narrative .block{margin-bottom:30px}
+  .narrative .block:last-child{margin-bottom:0}
+  .block__label{font-family:var(--font-mono);font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:11px;display:flex;align-items:center;gap:10px}
+  .block__label::before{content:"";width:6px;height:6px;border-radius:1px;background:var(--accent);transform:rotate(45deg)}
+  .narrative p{color:var(--bone-dim)}
+  .narrative p strong{color:var(--bone);font-weight:600}
+  .narrative em{color:var(--bone);font-style:italic}
+  .feat{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+  .feat li{padding-left:24px;position:relative;color:var(--bone-dim)}
+  .feat li::before{content:"";position:absolute;left:0;top:.62em;width:11px;height:1px;background:var(--accent)}
+  .feat li b{color:var(--bone);font-weight:600}
+
+  .credit{margin-top:26px;font-family:var(--font-mono);font-size:12.5px;letter-spacing:.03em;color:var(--muted);border-left:2px solid var(--accent);padding-left:14px}
+  .credit b{color:var(--bone);font-weight:500}
+
+  /* ---------- colophon ---------- */
+  .colophon{padding-block:clamp(90px,14vh,170px);border-top:1px solid var(--line)}
+  .colophon h2{font-size:clamp(32px,5.4vw,64px);letter-spacing:-.035em;max-width:16ch}
+  .colophon h2 em{font-family:var(--font-body);font-style:italic;font-weight:500;color:var(--bone-dim)}
+  .colophon p{color:var(--bone-dim);max-width:56ch;margin-top:22px}
+  .colophon__foot{margin-top:60px;border-top:1px solid var(--line);padding-top:26px;display:flex;flex-wrap:wrap;gap:18px 40px;align-items:baseline;font-family:var(--font-mono);font-size:12.5px;letter-spacing:.04em;color:var(--muted)}
+  .colophon__foot b{font-family:var(--font-display);color:var(--bone);font-size:15px;font-weight:600;letter-spacing:-.01em}
+
+  /* ---------- reveal animation ---------- */
+  .reveal{opacity:0;transform:translateY(22px);transition:opacity .8s cubic-bezier(.2,.7,.2,1),transform .8s cubic-bezier(.2,.7,.2,1)}
+  .reveal.in{opacity:1;transform:none}
+  .reveal[data-d="1"]{transition-delay:.08s}
+  .reveal[data-d="2"]{transition-delay:.16s}
+  .reveal[data-d="3"]{transition-delay:.24s}
+
+  /* svg figure motion */
+  .wave rect{transform-origin:center;animation:wv 1.4s ease-in-out infinite}
+  .sweep{transform-origin:14px 86px;animation:rot 5.5s linear infinite}
+  .ping{animation:ping 2.4s ease-out infinite}
+  @keyframes wv{0%,100%{transform:scaleY(.45)}50%{transform:scaleY(1)}}
+  @keyframes rot{to{transform:rotate(360deg)}}
+  @keyframes ping{0%{r:2;opacity:1}80%,100%{r:30;opacity:0}}
+
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    .reveal{opacity:1;transform:none;transition:none}
+    .scrollhint .bar::after,.wave rect,.sweep,.ping{animation:none}
+  }
+
+  @media (max-width:1080px){.spine{display:none}}
+  :focus-visible{outline:2px solid var(--c3);outline-offset:3px;border-radius:3px}
+</style>
+</head>
+<body>
+
+<div class="progress"><div class="progress__bar" id="pbar"></div></div>
+
+<!-- spine navigation -->
+<nav class="spine" aria-label="Chapters">
+  <div class="spine__brand"><b>Build Log</b><br>2025 — 2026</div>
+  <a href="#foreword" data-acc="var(--bone)"><span class="n">00</span><span class="t">Foreword</span></a>
+  <a href="#ch1" data-acc="var(--c1)"><span class="n">01</span><span class="t">Ascend Life Quest</span></a>
+  <a href="#ch2" data-acc="var(--c2)"><span class="n">02</span><span class="t">Godot Survivor</span></a>
+  <a href="#ch3" data-acc="var(--c3)"><span class="n">03</span><span class="t">Interview Sim</span></a>
+  <a href="#ch4" data-acc="var(--c4)"><span class="n">04</span><span class="t">Mapping Robot</span></a>
+  <a href="#colophon" data-acc="var(--bone)"><span class="n">✦</span><span class="t">Colophon</span></a>
+</nav>
+
+<!-- ======================= COVER ======================= -->
+<header class="cover" id="cover">
+  <div class="content">
+    <div class="cover__kicker reveal in">BUT Informatique · Third Year · A Portfolio</div>
+    <h1>
+      <span class="line"><span class="reveal in" data-d="1">Four projects.</span></span>
+      <span class="line"><span class="reveal in" data-d="2">Four different</span></span>
+      <span class="line"><span class="reveal in" data-d="3"><em>machines to think with.</em></span></span>
+    </h1>
+    <p class="cover__lede reveal in" data-d="3">A year spent building things that have almost nothing in common — a phone game made of daily quests, an arcade survivor, a voice-driven AI recruiter, and a robot that draws a room onto your screen. <em>This is the build log.</em></p>
+
+    <div class="spectrum reveal in" data-d="3">
+      <span class="seg"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span>
+    </div>
+    <div class="cover__index reveal in" data-d="3">
+      <span><i class="dot" style="background:var(--c1)"></i>Mobile</span>
+      <span><i class="dot" style="background:var(--c2)"></i>Game design</span>
+      <span><i class="dot" style="background:var(--c3)"></i>Applied AI</span>
+      <span><i class="dot" style="background:var(--c4)"></i>Embedded &amp; robotics</span>
+    </div>
+
+    <div class="cover__by reveal in" data-d="3">
+      <b>Corentin Gas</b>
+      <span>IUT Lyon 1 — Bourg-en-Bresse</span>
+      <span>BUT Informatique · 2025 — 2026</span>
+    </div>
+
+    <div class="scrollhint reveal in" data-d="3"><span class="bar"></span>Read on</div>
+  </div>
+</header>
+
+<!-- ======================= FOREWORD ======================= -->
+<section class="foreword" id="foreword" style="--accent:var(--bone)">
+  <div class="content">
+    <div class="eyebrow reveal">00 — Foreword</div>
+    <div class="foreword__grid">
+      <div>
+        <h2 class="reveal">The interesting part of a project is <em>never the part you can see.</em></h2>
+        <div style="margin-top:30px">
+          <p class="reveal">Across my final year of the BUT Informatique at IUT&nbsp;Lyon&nbsp;1 (Bourg-en-Bresse campus), I built four systems on purpose unlike each other: one lives on a phone and turns chores into a quest log, one is an arcade game where the screen tries to overwhelm you, one is a website that interviews you out loud for a job, and one is a small robot that surveys a room and reconstructs it live.</p>
+          <p class="reveal">What ties them together isn't a language or a framework — it's the work underneath. <strong>Deciding what to build, choosing tools that fit, and getting a real thing to run end to end</strong>, including the moments when the network drops, the microphone is missing, or a sensor lies to you.</p>
+          <p class="reveal">Read it cover to cover, or jump straight to the chapter that interests you.</p>
+        </div>
+      </div>
+      <aside class="ledger reveal" data-d="1" aria-label="At a glance">
+        <div class="ledger__head">At a glance</div>
+        <div class="ledger__row"><span class="k">Program</span><span class="v">BUT Informatique · 3rd&nbsp;yr</span></div>
+        <div class="ledger__row"><span class="k">Year</span><span class="v">2025 — 2026</span></div>
+        <div class="ledger__row"><span class="k">Fields</span><span class="v">Mobile · Game · AI · Embedded</span></div>
+        <div class="ledger__row"><span class="k">Languages</span><span class="v">Dart · Kotlin · Python · GDScript · C++</span></div>
+        <div class="ledger__row"><span class="k">Built</span><span class="v">Solo · in pairs · team of 3</span></div>
+        <div class="ledger__row"><span class="k">Chapters</span><span class="v">04</span></div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= CHAPTER 1 ======================= -->
+<section class="chapter" id="ch1" style="--accent:var(--c1)">
+  <div class="content">
+    <div class="ch-head">
+      <div class="eyebrow reveal">Mobile · Cross-platform</div>
+      <div class="ch-num reveal">CH·<b>01</b></div>
+      <h2 class="ch-title reveal">Ascend Life Quest</h2>
+      <p class="ch-hook reveal" data-d="1">Turn the day into a quest log — and level yourself up for real.</p>
+    </div>
+
+    <div class="ch-body">
+      <div class="spec reveal" data-d="1">
+        <svg class="figure" viewBox="0 0 100 80" role="img" aria-label="A level ring beside a checklist of daily quests">
+          <circle cx="26" cy="30" r="16" fill="none" stroke="var(--line)" stroke-width="3"/>
+          <circle cx="26" cy="30" r="16" fill="none" stroke="var(--c1)" stroke-width="3" stroke-linecap="round"
+                  stroke-dasharray="100.5" stroke-dashoffset="30" transform="rotate(-90 26 30)"/>
+          <text x="26" y="28" text-anchor="middle" font-family="JetBrains Mono" font-size="6.5" fill="var(--muted)">LV</text>
+          <text x="26" y="36" text-anchor="middle" font-family="Bricolage Grotesque" font-weight="800" font-size="11" fill="var(--c1)">12</text>
+          <g stroke-linecap="round">
+            <rect x="52" y="18" width="7" height="7" rx="1.6" fill="none" stroke="var(--c1)" stroke-width="1.6"/>
+            <path d="M53.4 21.6 l1.6 1.6 l3-3.4" fill="none" stroke="var(--c1)" stroke-width="1.6"/>
+            <line x1="64" y1="21.5" x2="86" y2="21.5" stroke="var(--line)" stroke-width="2"/>
+            <rect x="52" y="34" width="7" height="7" rx="1.6" fill="none" stroke="var(--c1)" stroke-width="1.6"/>
+            <path d="M53.4 37.6 l1.6 1.6 l3-3.4" fill="none" stroke="var(--c1)" stroke-width="1.6"/>
+            <line x1="64" y1="37.5" x2="82" y2="37.5" stroke="var(--line)" stroke-width="2"/>
+            <rect x="52" y="50" width="7" height="7" rx="1.6" fill="none" stroke="var(--muted-2)" stroke-width="1.6"/>
+            <line x1="64" y1="53.5" x2="88" y2="53.5" stroke="var(--line)" stroke-width="2"/>
+          </g>
+          <rect x="14" y="64" width="72" height="4" rx="2" fill="var(--line)"/>
+          <rect x="14" y="64" width="46" height="4" rx="2" fill="var(--c1)"/>
+          <text x="14" y="76" font-family="JetBrains Mono" font-size="4.6" fill="var(--muted-2)">XP TO NEXT LEVEL</text>
+        </svg>
+        <div class="spec__title">Stack</div>
+        <div class="spec__tags">
+          <span class="tag lead">Flutter</span>
+          <span class="tag">Dart</span>
+          <span class="tag lead">Kotlin</span>
+          <span class="tag">Firebase</span>
+          <span class="tag">Room · SQLite</span>
+          <span class="tag">AI quest gen</span>
+        </div>
+        <div class="spec__meta">
+          <div class="row"><span>Type</span><b>Solo + pair</b></div>
+          <div class="row"><span>Platform</span><b>Android</b></div>
+          <div class="row"><span>Mode</span><b>Online + offline-first</b></div>
+        </div>
+      </div>
+
+      <div class="narrative">
+        <div class="block reveal">
+          <div class="block__label">The goal</div>
+          <p>Habit apps feel like homework. <strong>Ascend Life Quest turns the same loop into a game</strong>: your day becomes a set of quests, finishing them earns XP, and that XP levels you up and moves you up a ranking. The pitch is simple — make progress visible, and make it feel earned.</p>
+        </div>
+        <div class="block reveal">
+          <div class="block__label">What it does</div>
+          <ul class="feat">
+            <li><b>AI-generated daily quests</b> — a fresh, personal set each day rather than a fixed checklist.</li>
+            <li><b>XP, levels &amp; rankings</b> — climb a <em>global</em> leaderboard or a private one with friends.</li>
+            <li><b>A full social layer</b> — friend requests, a friends list, and direct messaging between players.</li>
+            <li><b>Offline mode</b> — a local quest bank keeps the loop alive for at least two days with no signal; only the AI generation pauses until you reconnect.</li>
+          </ul>
+        </div>
+        <div class="block reveal">
+          <div class="block__label">Under the hood</div>
+          <p>The app exists in <strong>two builds</strong> — a Flutter (Dart) version I built solo and a native Kotlin version built as a pair — which let me feel the real trade-offs between cross-platform and native rather than read about them. <strong>Firebase</strong> runs the accounts, the friends graph, the messaging and the live leaderboard. A <strong>Room</strong> database stores the offline quest bank on the device, so the core experience survives a dead connection, and quest generation calls an AI service whenever the phone is back online.</p>
+        </div>
+        <div class="block reveal">
+          <div class="block__label">What I took from it</div>
+          <p>Building one product two ways forced me to separate <em>the idea</em> from <em>the framework</em>. The harder lesson was data: an offline-first app has to be designed that way from the first screen — you can't bolt resilience on at the end.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= CHAPTER 2 ======================= -->
+<section class="chapter" id="ch2" style="--accent:var(--c2)">
+  <div class="content">
+    <div class="ch-head">
+      <div class="eyebrow reveal">Game design · Godot</div>
+      <div class="ch-num reveal">CH·<b>02</b></div>
+      <h2 class="ch-title reveal">Godot Survivor</h2>
+      <p class="ch-hook reveal" data-d="1">Stay alive — the screen won't make it easy.</p>
+    </div>
+
+    <div class="ch-body">
+      <div class="spec reveal" data-d="1">
+        <svg class="figure" viewBox="0 0 100 80" role="img" aria-label="Enemies converging on a player, with loot drops and a power-up choice">
+          <circle class="ping" cx="50" cy="40" r="2" fill="none" stroke="var(--c2)" stroke-width="1.4"/>
+          <!-- enemies converging -->
+          <g fill="var(--line)">
+            <circle cx="16" cy="20" r="3.4"/><circle cx="84" cy="24" r="3.4"/>
+            <circle cx="20" cy="60" r="3.4"/><circle cx="80" cy="62" r="3.4"/>
+            <circle cx="52" cy="12" r="3.4"/><circle cx="12" cy="40" r="3"/>
+            <circle cx="88" cy="44" r="3"/><circle cx="50" cy="70" r="3"/>
+          </g>
+          <g stroke="var(--line)" stroke-width="1" opacity=".6">
+            <line x1="50" y1="40" x2="16" y2="20"/><line x1="50" y1="40" x2="84" y2="24"/>
+            <line x1="50" y1="40" x2="20" y2="60"/><line x1="50" y1="40" x2="80" y2="62"/>
+            <line x1="50" y1="40" x2="52" y2="12"/><line x1="50" y1="40" x2="50" y2="70"/>
+          </g>
+          <!-- loot -->
+          <path d="M30 36 l2.4 2.4 l-2.4 2.4 l-2.4-2.4 z" fill="var(--c2)"/>
+          <path d="M70 44 l2.4 2.4 l-2.4 2.4 l-2.4-2.4 z" fill="var(--c2)"/>
+          <!-- player -->
+          <circle cx="50" cy="40" r="5.5" fill="none" stroke="var(--c2)" stroke-width="2.2"/>
+          <circle cx="50" cy="40" r="1.8" fill="var(--c2)"/>
+          <text x="14" y="76" font-family="JetBrains Mono" font-size="4.6" fill="var(--muted-2)">KILLS 248 · WAVE 07</text>
+        </svg>
+        <div class="spec__title">Stack</div>
+        <div class="spec__tags">
+          <span class="tag lead">Godot</span>
+          <span class="tag">GDScript</span>
+          <span class="tag">2D</span>
+          <span class="tag">Wave spawner</span>
+          <span class="tag">Power-up draft</span>
+        </div>
+        <div class="spec__meta">
+          <div class="row"><span>Type</span><b>Pair · 2</b></div>
+          <div class="row"><span>Genre</span><b>Survivor / roguelite</b></div>
+          <div class="row"><span>Loop</span><b>Kill → loot → level</b></div>
+        </div>
+      </div>
+
+      <div class="narrative">
+        <div class="block reveal">
+          <div class="block__label">The goal</div>
+          <p>A <strong>survivor-style arcade game</strong> in the vein of the genre: drop the player into an arena and let the pressure build. The objective is the oldest one there is — last as long as you can while the enemy count keeps climbing.</p>
+        </div>
+        <div class="block reveal">
+          <div class="block__label">What it does</div>
+          <ul class="feat">
+            <li><b>Endless swarms</b> — enemies arrive in growing numbers and bear down on you.</li>
+            <li><b>Loot &amp; leveling</b> — defeated enemies drop pickups; collect enough to level up mid-run.</li>
+            <li><b>Power-up choices</b> — each level lets you draft an upgrade that changes how you fight.</li>
+          </ul>
+        </div>
+        <div class="block reveal">
+          <div class="block__label">Under the hood</div>
+          <p>Built in <strong>Godot</strong>, the game wires together the loops that make the genre tick: enemy spawning, real-time combat and collision, the loot-and-pickup system, the level-up power-up draft, and a difficulty curve that scales with elapsed time.</p>
+        </div>
+        <div class="block reveal">
+          <div class="block__label">What I took from it</div>
+          <p><em>Game feel is its own engineering discipline.</em> Spawn rates, pacing and the power-up economy are the difference between a run that feels satisfying and one that feels unfair — and they only reveal themselves by playing, tuning, and playing again.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= CHAPTER 3 ======================= -->
+<section class="chapter" id="ch3" style="--accent:var(--c3)">
+  <div class="content">
+    <div class="ch-head">
+      <div class="eyebrow reveal">Applied AI · Voice · Web — Team SAE</div>
+      <div class="ch-num reveal">CH·<b>03</b></div>
+      <h2 class="ch-title reveal">Interview Simulator</h2>
+      <p class="ch-hook reveal" data-d="1">A recruiter that never tires of you practising.</p>
+    </div>
+
+    <div class="ch-body">
+      <div class="spec reveal" data-d="1">
+        <svg class="figure" viewBox="0 0 100 80" role="img" aria-label="A voice waveform feeding a chat bubble, beside a score dial">
+          <g class="wave" fill="var(--c3)">
+            <rect x="12" y="28" width="3" height="14" rx="1.5"/>
+            <rect x="18" y="28" width="3" height="14" rx="1.5" style="animation-delay:.15s"/>
+            <rect x="24" y="28" width="3" height="14" rx="1.5" style="animation-delay:.3s"/>
+            <rect x="30" y="28" width="3" height="14" rx="1.5" style="animation-delay:.45s"/>
+            <rect x="36" y="28" width="3" height="14" rx="1.5" style="animation-delay:.6s"/>
+          </g>
+          <!-- chat bubble -->
+          <rect x="48" y="20" width="40" height="22" rx="6" fill="none" stroke="var(--c3)" stroke-width="1.8"/>
+          <path d="M54 42 l0 6 l6 -6 z" fill="none" stroke="var(--c3)" stroke-width="1.8" stroke-linejoin="round"/>
+          <line x1="54" y1="28" x2="82" y2="28" stroke="var(--line)" stroke-width="2"/>
+          <line x1="54" y1="34" x2="76" y2="34" stroke="var(--line)" stroke-width="2"/>
+          <!-- score dial -->
+          <path d="M30 70 a18 18 0 0 1 40 0" fill="none" stroke="var(--line)" stroke-width="3" stroke-linecap="round"/>
+          <path d="M30 70 a18 18 0 0 1 30 -13" fill="none" stroke="var(--c3)" stroke-width="3" stroke-linecap="round"/>
+          <text x="50" y="68" text-anchor="middle" font-family="Bricolage Grotesque" font-weight="800" font-size="9" fill="var(--c3)">7.5</text>
+          <text x="50" y="76" text-anchor="middle" font-family="JetBrains Mono" font-size="4" fill="var(--muted-2)">/ 10</text>
+        </svg>
+        <div class="spec__title">Stack</div>
+        <div class="spec__tags">
+          <span class="tag lead">Python</span>
+          <span class="tag">Gradio</span>
+          <span class="tag">faster-whisper</span>
+          <span class="tag">Edge-TTS</span>
+          <span class="tag">Ollama · Llama 3 / Mistral</span>
+          <span class="tag">SSH tunnel · Paramiko</span>
+        </div>
+        <div class="spec__meta">
+          <div class="row"><span>Type</span><b>Team SAE · 3</b></div>
+          <div class="row"><span>Interface</span><b>Web (local)</b></div>
+          <div class="row"><span>Input</span><b>Voice or text</b></div>
+        </div>
+      </div>
+
+      <div class="narrative">
+        <div class="block reveal">
+          <div class="block__label">The goal</div>
+          <p>Let anyone <strong>rehearse a real job interview, out loud</strong>, before the one that counts. You tell it the role you're after and how prepared you want to be; it plays the recruiter.</p>
+        </div>
+        <div class="block reveal">
+          <div class="block__label">What it does</div>
+          <ul class="feat">
+            <li><b>Set the scene</b> — enter the target role, choose 1–30 questions, and optionally drop in your CV (PDF or DOCX).</li>
+            <li><b>A recruiter that adapts</b> — questions are tailored to the role and, if provided, to your actual background.</li>
+            <li><b>Speaks and listens</b> — it reads each question aloud in a natural French voice; you answer by microphone or keyboard, switchable on every question.</li>
+            <li><b>A real verdict</b> — at the end it returns a structured review: a score out of 10 plus written feedback on clarity, examples, structure, fit and more.</li>
+          </ul>
+        </div>
+        <div class="block reveal">
+          <div class="block__label">Under the hood</div>
+          <p>A <strong>Python</strong> app behind a <strong>Gradio</strong> interface orchestrates a small pipeline of services. Speech in runs through <strong>faster-whisper</strong> (speech-to-text); speech out uses <strong>Microsoft Edge-TTS</strong> — the <em>fr-FR “Henri”</em> voice — with a local pyttsx3 fallback when there's no internet. The questions and the final evaluation come from an <strong>LLM served by Ollama</strong> (Llama 3 / Mistral) running on a remote GPU machine, reached over an <strong>SSH tunnel (Paramiko)</strong> so a laptop never has to host the model. Uploaded CVs are parsed and summarised locally, and aren't kept after the session.</p>
+        </div>
+        <div class="block reveal">
+          <div class="block__label">What I took from it</div>
+          <p>This was the most “real-world” of the four — four separate services (speech-to-text, text-to-speech, the language model, and file parsing) that all had to hand off cleanly, with graceful fallbacks for the moments a network or a microphone simply isn't there.</p>
+          <p class="credit">Team SAE — built with <b>Léo Periou</b> and <b>Mathéo Drecq</b>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= CHAPTER 4 ======================= -->
+<section class="chapter" id="ch4" style="--accent:var(--c4)">
+  <div class="content">
+    <div class="ch-head">
+      <div class="eyebrow reveal">Embedded · Robotics · BLE</div>
+      <div class="ch-num reveal">CH·<b>04</b></div>
+      <h2 class="ch-title reveal">Mapping Robot</h2>
+      <p class="ch-hook reveal" data-d="1">Send a robot around the room; watch the map appear on your phone.</p>
+    </div>
+
+    <div class="ch-body">
+      <div class="spec reveal" data-d="1">
+        <svg class="figure" viewBox="0 0 100 80" role="img" aria-label="A radar sweep over a room outline, with a robot tracing the walls">
+          <!-- room outline -->
+          <path d="M14 16 H70 V40 H86 V64 H14 Z" fill="none" stroke="var(--line)" stroke-width="2"/>
+          <!-- discovered walls -->
+          <path d="M14 64 H14 M14 16 H70 V40" fill="none" stroke="var(--c4)" stroke-width="2" stroke-linecap="round"/>
+          <line x1="14" y1="16" x2="14" y2="64" stroke="var(--c4)" stroke-width="2" stroke-linecap="round"/>
+          <!-- radar sweep -->
+          <g class="sweep">
+            <line x1="14" y1="86" x2="14" y2="34" stroke="var(--c4)" stroke-width="1.6" opacity=".8"/>
+            <line x1="14" y1="86" x2="34" y2="44" stroke="var(--c4)" stroke-width="1" opacity=".35"/>
+            <line x1="14" y1="86" x2="2" y2="50" stroke="var(--c4)" stroke-width="1" opacity=".2"/>
+          </g>
+          <!-- robot -->
+          <rect x="44" y="30" width="9" height="9" rx="2" fill="none" stroke="var(--c4)" stroke-width="2" transform="rotate(12 48 34)"/>
+          <circle cx="48.5" cy="34.5" r="1.4" fill="var(--c4)"/>
+          <text x="14" y="76" font-family="JetBrains Mono" font-size="4.6" fill="var(--muted-2)">BLE ●  STREAMING MAP</text>
+        </svg>
+        <div class="spec__title">Stack</div>
+        <div class="spec__tags">
+          <span class="tag lead">ESP32</span>
+          <span class="tag">Arduino · C++</span>
+          <span class="tag">BLE</span>
+          <span class="tag">Sensors</span>
+          <span class="tag">Companion app</span>
+          <span class="tag">Live mapping</span>
+        </div>
+        <div class="spec__meta">
+          <div class="row"><span>Type</span><b>Pair · 2</b></div>
+          <div class="row"><span>Hardware</span><b>4-wheel rover</b></div>
+          <div class="row"><span>Control</span><b>Auto + manual</b></div>
+        </div>
+      </div>
+
+      <div class="narrative">
+        <div class="block reveal">
+          <div class="block__label">The goal</div>
+          <p>Have a small robot <strong>survey a classroom and rebuild its shape live</strong> on a phone — software, hardware and a radio link, all working together in one moving object.</p>
+        </div>
+        <div class="block reveal">
+          <div class="block__label">What it does</div>
+          <ul class="feat">
+            <li><b>Drives the perimeter</b> — a four-wheeled ESP32 rover follows the walls using its sensors.</li>
+            <li><b>Streams over BLE</b> — it sends what it sees to a paired phone over Bluetooth Low Energy.</li>
+            <li><b>Draws the map</b> — a dedicated mobile app renders the floor plan in real time as the robot moves.</li>
+            <li><b>Saves &amp; revisits</b> — each room is stored and browsable in the app, and you can switch to manual driving to steer the survey yourself.</li>
+          </ul>
+        </div>
+        <div class="block reveal">
+          <div class="block__label">Under the hood</div>
+          <p><strong>ESP32 firmware (Arduino / C++)</strong> reads the sensors, handles the drive, and acts as a <strong>BLE peripheral</strong>. The companion <strong>mobile app is the BLE central</strong>: it receives the stream, reconstructs and draws the floor plan, stores each surveyed room, and exposes the manual-control mode.</p>
+        </div>
+        <div class="block reveal">
+          <div class="block__label">What I took from it</div>
+          <p><em>Hardware doesn't forgive.</em> Timing, noisy sensor readings and a constrained radio link meant the real work was turning an unreliable physical signal into a clean, trustworthy map on a screen.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= COLOPHON ======================= -->
+<section class="colophon" id="colophon" style="--accent:var(--bone)">
+  <div class="content">
+    <div class="eyebrow reveal">✦ — Colophon</div>
+    <h2 class="reveal">Four systems. <em>One year.</em></h2>
+    <p class="reveal">A phone game, an arcade survivor, a voice AI and a robot — chosen to be different on purpose, because the point of a final year is to find out what you can build when the brief keeps changing. Mobile, game design, applied AI and embedded systems aren't four separate skills to me; they're four angles on the same habit of shipping a real thing.</p>
+    <p class="reveal">Next: an engineering program at CPE&nbsp;Lyon / ITII&nbsp;Lyon, majoring in Development &amp; AI — and more build logs to come.</p>
+
+    <div class="colophon__foot reveal" data-d="1">
+      <b>Corentin Gas</b>
+      <span>BUT Informatique · IUT Lyon 1, Bourg-en-Bresse · 2025 — 2026</span>
+    </div>
+  </div>
+</section>
+
+<script>
+(function(){
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // reading progress
+  var bar = document.getElementById('pbar');
+  function onScroll(){
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    var p = max > 0 ? (h.scrollTop || document.body.scrollTop) / max : 0;
+    bar.style.transform = 'scaleX(' + p + ')';
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+
+  // reveal on scroll
+  var reveals = document.querySelectorAll('.reveal:not(.in)');
+  if (reduce || !('IntersectionObserver' in window)){
+    reveals.forEach(function(el){ el.classList.add('in'); });
+  } else {
+    var ro = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting){ e.target.classList.add('in'); ro.unobserve(e.target); }
+      });
+    }, {threshold:0.12, rootMargin:'0px 0px -8% 0px'});
+    reveals.forEach(function(el){ ro.observe(el); });
+  }
+
+  // spine scroll-spy
+  var links = Array.prototype.slice.call(document.querySelectorAll('.spine a'));
+  var map = {};
+  links.forEach(function(a){
+    var id = a.getAttribute('href').slice(1);
+    var sec = document.getElementById(id);
+    if (sec) map[id] = a;
+  });
+  function setActive(id){
+    links.forEach(function(a){
+      var on = a.getAttribute('href') === '#' + id;
+      a.classList.toggle('active', on);
+      if (on){ a.style.setProperty('--acc', a.getAttribute('data-acc')); }
+    });
+  }
+  if ('IntersectionObserver' in window){
+    var spy = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting) setActive(e.target.id);
+      });
+    }, {rootMargin:'-45% 0px -50% 0px', threshold:0});
+    ['foreword','ch1','ch2','ch3','ch4','colophon'].forEach(function(id){
+      var el = document.getElementById(id); if (el) spy.observe(el);
+    });
+  }
+})();
+</script>
+</body>
+</html>
